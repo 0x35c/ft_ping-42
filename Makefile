@@ -1,7 +1,7 @@
 NAME := ft_ping
 
 CC := gcc
-CFLAGS := -Wall -Wextra -Werror
+CFLAGS := -Wall -Wextra -Werror -iquoteinclude -g
 
 LD := $(CC)
 LDFLAGS := 
@@ -16,18 +16,16 @@ obj/%.o: src/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(NAME): $(OBJ)
-	mkdir -p build
-	$(LD) $(LDFLAGS) -o build/$(NAME) $(OBJ) 
+	$(LD) $(LDFLAGS) -o $(NAME) $(OBJ) 
 
 clean:
 	rm -rf obj
 
 fclean: clean
-	rm -rf build
+	rm -f $(NAME)
 
 re: 
 	$(MAKE) fclean 
 	$(MAKE) all
 
 .PHONY: all clean fclean re
--include $(DEP)
