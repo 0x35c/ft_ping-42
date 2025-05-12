@@ -1,11 +1,11 @@
 #include <netdb.h>
 #include <stdio.h>
+#include <strings.h>
 
 #include "ft_ping.h"
 
 int main(int ac, char **av)
 {
-	char ip_addr[64];
 	struct sockaddr_in addr_con;
 	int ttl_val = 48; // TODO -t flag
 	struct timeval tv_out;
@@ -16,8 +16,13 @@ int main(int ac, char **av)
 		return 1;
 	}
 
-	if (dns_lookup(ip_addr, av[1], &addr_con))
+	bzero(&stats, sizeof(stats));
+	if (dns_lookup(stats.ip, av[1], &addr_con))
 		return 1;
+	if (reverse_dns_lookup(stats.ip, stats.host))
+		return 1;
+	stats.packetsize = 56;
+	stats.ttl = 48;
 
 	int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 	if (sockfd < 0)
@@ -32,12 +37,7 @@ int main(int ac, char **av)
 	               sizeof(tv_out)))
 		return err("Setting socket timeout for receiving failed!");
 
-	stats.packetsize = 56;
-	stats.ttl = 48;
-	stats.domain_name = av[1];
-	stats.domain_ip = ip_addr;
-
-	ping(sockfd, &addr_con, &stats);
+	ping(sockfd, &addr_con, &stats, av[1]);
 
 	return 0;
 }
