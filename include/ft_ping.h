@@ -3,11 +3,14 @@
 #include <netdb.h>
 #include <netinet/ip_icmp.h>
 
-#define PACKET_SIZE 64
+// #define assert(X)
 
-struct ping_packet {
-	struct icmphdr hdr;
-	char payload[PACKET_SIZE - sizeof(struct icmphdr)];
+typedef enum { COUNT = 1, INTERVAL, QUIET, SIZE, VERBOSE, TTL } e_flag;
+
+struct option {
+	e_flag flag;
+	int arg;
+	struct option *next;
 };
 
 struct rtt {
@@ -17,7 +20,7 @@ struct rtt {
 };
 
 struct stats {
-	int packetsize;
+	size_t packetsize;
 	char host[NI_MAXHOST];
 	char ip[15];
 	int req_count;
@@ -25,10 +28,12 @@ struct stats {
 	struct rtt rtt;
 };
 
-unsigned int checksum(void *data, size_t len);
-void ping(int sockfd, struct sockaddr_in *addr_con, struct stats *stats,
-          char *host_input);
+struct option *parse_options(char **options, char **hostname);
+int get_option_arg(struct option *options, e_flag flag);
+void ping(int sockfd, struct sockaddr_in *addr_con, struct option *options,
+          struct stats *stats, char *host_input);
 int dns_lookup(char *ip_addr, char *hostname, struct sockaddr_in *addr_con);
 int reverse_dns_lookup(char *ip_addr, char *host);
 int err(char *str);
+unsigned int checksum(void *data, size_t len);
 void calculate_rtt(struct stats *stats);

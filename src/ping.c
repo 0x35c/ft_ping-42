@@ -1,6 +1,8 @@
+#include <assert.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <sys/socket.h>
@@ -8,8 +10,6 @@
 #include <unistd.h>
 
 #include "ft_ping.h"
-
-#define PING_SLEEP_RATE 1000000
 
 bool sending = true;
 
@@ -27,7 +27,9 @@ static int receive_packet(int sockfd)
 	socklen_t len = sizeof(addr_recv);
 	if (recvfrom(sockfd, data, sizeof(data), 0,
 	             (struct sockaddr *)&addr_recv, &len) <= 0) {
+#ifdef DEBUG
 		dprintf(2, "Failed to receive packet\n");
+#endif
 		return -1;
 	}
 
@@ -44,75 +46,113 @@ static int receive_packet(int sockfd)
 }
 
 static int send_packet(int sockfd, struct sockaddr_in *addr_con,
-                       int packets_sent)
+                       int payload_size, int packets_sent)
 {
-	struct ping_packet packet;
+	struct icmphdr hdr;
 
-	bzero(&packet, sizeof(packet));
-	packet.hdr.type = ICMP_ECHO;
-	packet.hdr.un.echo.id = getpid();
-	packet.hdr.un.echo.sequence = packets_sent;
-	memset(packet.payload, '*', sizeof(packet.payload));
-	packet.hdr.checksum = checksum(&packet, sizeof(packet));
+	bzero(&hdr, sizeof(hdr));
+	hdr.type = ICMP_ECHO;
+	hdr.un.echo.id = getpid();
+	hdr.un.echo.sequence = packets_sent;
+	char *payload = malloc(payload_size);
+	if (!payload) {
+#ifdef DEBUG
+		dprintf(2, "Failed to allocate the payload\n");
+#endif
+		return -1;
+	}
+	memset(payload, '*', payload_size);
 
-	if (sendto(sockfd, &packet, sizeof(packet), 0,
-	           (struct sockaddr *)addr_con, sizeof(*addr_con)) <= 0) {
+	size_t packet_size = sizeof(hdr) + payload_size;
+	char *packet = malloc(packet_size);
+	if (!packet) {
+#ifdef DEBUG
+		dprintf(2, "Failed to allocate the packet\n");
+#endif
+		free(payload);
+		return -1;
+	}
+	memcpy(packet, &hdr, sizeof(hdr));
+	memcpy(packet + sizeof(hdr), payload, payload_size);
+	struct icmphdr *hdr_packet = (struct icmphdr *)packet;
+	hdr_packet->checksum = checksum(packet, packet_size);
+
+	if (sendto(sockfd, packet, packet_size, 0, (struct sockaddr *)addr_con,
+	           sizeof(*addr_con)) <= 0) {
+#ifdef DEBUG
 		dprintf(2, "Failed to send packet\n");
+#endif
+		free(payload);
+		free(packet);
 		return -1;
 	};
+	free(payload);
+	free(packet);
 	return 0;
 }
 
-void ping(int sockfd, struct sockaddr_in *addr_con, struct stats *stats,
-          char *host_input)
+void ping(int sockfd, struct sockaddr_in *addr_con, struct option *options,
+          struct stats *stats, char *host_input)
 {
 	struct timespec packet_start, packet_end, tfs, tfe;
 	int packets_sent = 0, packets_received = 0;
+	int interval, count, quiet;
 	long double total_ms;
 
 	signal(SIGINT, sigint_handler);
 
+	count = get_option_arg(options, COUNT);
+	interval = get_option_arg(options, INTERVAL);
+	if (!interval)
+		interval = 1000000;
+	quiet = get_option_arg(options, QUIET);
+
+	printf("PING %s (%s) %lu(%lu) bytes of data.\n", host_input, stats->ip,
+	       stats->packetsize,
+	       stats->packetsize + sizeof(struct icmphdr) +
+	           sizeof(struct iphdr));
+
 	// Get the time before sending all the packets
 	clock_gettime(CLOCK_MONOTONIC, &tfs);
-
 	while (1) {
-		usleep(PING_SLEEP_RATE);
+		usleep(interval);
 		if (!sending)
 			break;
 
 		clock_gettime(CLOCK_MONOTONIC, &packet_start);
-
-		if (send_packet(sockfd, addr_con, packets_sent))
+		if (send_packet(sockfd, addr_con, stats->packetsize,
+		                packets_sent))
 			continue;
 		packets_sent++;
 
 		if (receive_packet(sockfd))
 			continue;
 		packets_received++;
-
 		clock_gettime(CLOCK_MONOTONIC, &packet_end);
+
+		if (count && packets_received >= count)
+			sending = false;
 
 		long double time_elapsed =
 		    (packet_end.tv_sec - packet_start.tv_sec) * 1000.0 +
 		    (packet_end.tv_nsec - packet_start.tv_nsec) / 1e6;
-		if (time_elapsed < 0)
-			printf("end: %ld - start: %ld\n", packet_end.tv_nsec,
-			       packet_start.tv_nsec);
+		assert(time_elapsed >= 0);
 		if (stats->rtt.min > time_elapsed || stats->rtt.min == 0)
 			stats->rtt.min = time_elapsed;
 		if (stats->rtt.max < time_elapsed)
 			stats->rtt.max = time_elapsed;
 		stats->rtt.avg += time_elapsed;
 
-		printf(
-		    "%d bytes from %s (%s): icmp_seq=%d ttl=%d time=%.1Lf ms\n",
-		    stats->packetsize, stats->host, stats->ip, packets_sent,
-		    stats->ttl, time_elapsed);
+		if (!quiet)
+			printf("%lu bytes from %s (%s): icmp_seq=%d ttl=%d "
+			       "time=%.1Lf ms\n",
+			       stats->packetsize + sizeof(struct icmphdr),
+			       stats->host, stats->ip, packets_sent, stats->ttl,
+			       time_elapsed);
 	}
 	clock_gettime(CLOCK_MONOTONIC, &tfe);
 
 	stats->rtt.avg /= packets_sent;
-
 	long double time_elapsed =
 	    ((double)(tfe.tv_nsec - tfs.tv_nsec)) / 1000000.0;
 	total_ms = (tfe.tv_sec - tfs.tv_sec) * 1000.0 + time_elapsed;
