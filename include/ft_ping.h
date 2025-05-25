@@ -5,12 +5,19 @@
 
 // #define assert(X)
 
-typedef enum { COUNT = 1, INTERVAL, QUIET, SIZE, VERBOSE, TTL } e_flag;
+typedef enum {
+	FL_COUNT = 'c',
+	FL_INTERVAL = 'i',
+	FL_QUIET = 'q',
+	FL_SIZE = 's',
+	FL_VERBOSE = 'v',
+	FL_TTL = 't',
+} e_flag;
 
-struct option {
+struct option_lst {
 	e_flag flag;
 	int arg;
-	struct option *next;
+	struct option_lst *next;
 };
 
 struct rtt {
@@ -28,9 +35,10 @@ struct stats {
 	struct rtt rtt;
 };
 
-struct option *parse_options(char **options, char **hostname);
-int get_option_arg(struct option *options, e_flag flag);
-void ping(int sockfd, struct sockaddr_in *addr_con, struct option *options,
+int parse_options(int ac, char *const *av, char **hostname,
+                  struct option_lst **head);
+int get_option_arg(struct option_lst *options, e_flag flag);
+void ping(int sockfd, struct sockaddr_in *addr_con, struct option_lst *options,
           struct stats *stats, char *host_input);
 int dns_lookup(char *ip_addr, char *hostname, struct sockaddr_in *addr_con);
 int reverse_dns_lookup(char *ip_addr, char *host);

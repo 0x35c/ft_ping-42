@@ -3,3 +3,4 @@ obj
 .cache
 compile_commands.json
 ft_ping
+dlopen.supp

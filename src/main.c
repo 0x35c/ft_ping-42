@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <unistd.h>
 
 #include "ft_ping.h"
 
@@ -10,28 +11,26 @@ int main(int ac, char **av)
 	struct sockaddr_in addr_con;
 	int ttl_val = 48, packetsize = 56;
 	struct timeval tv_out;
-	struct option *options = NULL;
+	struct option_lst *options = NULL;
 	struct stats stats;
-	char *hostname = av[1];
+	// char *hostname = av[1];
+	char *hostname = NULL;
 
 	if (ac < 2) {
 		dprintf(2, "Usage: ./ft_ping [option ...] host ...\n");
 		return 1;
 	}
 
-	if (av[1][0] != '-')
-		goto hostname;
-	options = parse_options(&av[1], &hostname);
-	if (!options)
+	if (parse_options(ac - 1, (char *const *)&av[1], &hostname, &options) <
+	    0)
 		return 1;
-	ttl_val = get_option_arg(options, TTL);
+	ttl_val = get_option_arg(options, FL_TTL);
 	if (!ttl_val)
 		ttl_val = 48;
-	packetsize = get_option_arg(options, SIZE);
+	packetsize = get_option_arg(options, FL_SIZE);
 	if (!packetsize)
 		packetsize = 56;
 
-hostname:
 	bzero(&stats, sizeof(stats));
 	if (dns_lookup(stats.ip, hostname, &addr_con))
 		return 1;
@@ -45,7 +44,7 @@ hostname:
 		return err("Failed to create socket");
 
 	if (setsockopt(sockfd, SOL_IP, IP_TTL, &ttl_val, sizeof(ttl_val)))
-		return err("Setting socket for IP protocol to TTL failed!");
+		return err("Setting socket for IP protocol to FL_TTL failed!");
 
 	tv_out.tv_sec = 1;
 	tv_out.tv_usec = 0;
@@ -55,11 +54,12 @@ hostname:
 
 	ping(sockfd, &addr_con, options, &stats, hostname);
 
-	for (struct option *it = options; it;) {
-		struct option *tmp = it;
+	for (struct option_lst *it = options; it;) {
+		struct option_lst *tmp = it;
 		it = it->next;
 		free(tmp);
 	}
+	close(sockfd);
 
 	return 0;
 }

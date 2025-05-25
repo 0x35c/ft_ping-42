@@ -116,7 +116,7 @@ static int receive_packet(int sockfd, bool verbose, int packets_received)
 	return 0;
 }
 
-void ping(int sockfd, struct sockaddr_in *addr_con, struct option *options,
+void ping(int sockfd, struct sockaddr_in *addr_con, struct option_lst *options,
           struct stats *stats, char *host_input)
 {
 	struct timespec packet_start, packet_end, tfs, tfe;
@@ -129,17 +129,17 @@ void ping(int sockfd, struct sockaddr_in *addr_con, struct option *options,
 	bzero(&recv_hdr, sizeof(recv_hdr));
 	signal(SIGINT, sigint_handler);
 
-	count = get_option_arg(options, COUNT);
-	interval = get_option_arg(options, INTERVAL);
+	count = get_option_arg(options, FL_COUNT);
+	interval = get_option_arg(options, FL_INTERVAL);
 	if (!interval)
 		interval = 1000000;
-	quiet = get_option_arg(options, QUIET);
+	quiet = get_option_arg(options, FL_QUIET);
 
 	printf("PING %s (%s) %lu(%lu) bytes of data.\n", host_input, stats->ip,
 	       stats->packetsize,
 	       stats->packetsize + sizeof(struct icmphdr) +
 	           sizeof(struct iphdr));
-	if (get_option_arg(options, VERBOSE))
+	if (get_option_arg(options, FL_VERBOSE))
 		verbose = true;
 
 	// Get the time before sending all the packets
