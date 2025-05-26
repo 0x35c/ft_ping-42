@@ -102,9 +102,9 @@ static int check_arg(int opt, const char *s)
 int parse_options(int ac, char *const *av, char **hostname,
                   struct option_lst **head)
 {
-	int opt = 1;
+	int opt;
 
-	if (av[0][0] != '-') {
+	if (av[1][0] != '-') {
 		dprintf(2, "ft_ping: invalid option '%s'\n", av[0]);
 		return -1;
 	}
@@ -117,11 +117,6 @@ int parse_options(int ac, char *const *av, char **hostname,
 		if (opt == 'q' || opt == 'v') {
 			add_option(head, opt, 1);
 			continue;
-		}
-		if (opt == ':' && !strchr("tcis", optopt)) {
-			printf("uwu\n");
-			*hostname = av[optind];
-			break;
 		}
 		if (!optarg) {
 			dprintf(2,

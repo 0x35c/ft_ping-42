@@ -21,8 +21,7 @@ int main(int ac, char **av)
 		return 1;
 	}
 
-	if (parse_options(ac - 1, (char *const *)&av[1], &hostname, &options) <
-	    0)
+	if (parse_options(ac, av, &hostname, &options) < 0)
 		return 1;
 	ttl_val = get_option_arg(options, FL_TTL);
 	if (!ttl_val)
