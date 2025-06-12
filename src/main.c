@@ -12,12 +12,11 @@ int main(int ac, char **av)
 	int ttl_val = 48, packetsize = 56;
 	struct timeval tv_out;
 	struct option_lst *options = NULL;
-	struct stats stats;
-	// char *hostname = av[1];
+	struct stats stats = {0};
 	char *hostname = NULL;
 
 	if (ac < 2) {
-		dprintf(2, "Usage: ./ft_ping [option ...] host ...\n");
+		print_usage();
 		return 1;
 	}
 
@@ -30,7 +29,6 @@ int main(int ac, char **av)
 	if (!packetsize)
 		packetsize = 56;
 
-	bzero(&stats, sizeof(stats));
 	if (dns_lookup(stats.ip, hostname, &addr_con))
 		return 1;
 	if (reverse_dns_lookup(stats.ip, stats.host))

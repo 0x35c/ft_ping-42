@@ -142,7 +142,6 @@ void ping(int sockfd, struct sockaddr_in *addr_con, struct option_lst *options,
 	if (get_option_arg(options, FL_VERBOSE))
 		verbose = true;
 
-	// Get the time before sending all the packets
 	clock_gettime(CLOCK_MONOTONIC, &tfs);
 	while (1) {
 		usleep(interval);

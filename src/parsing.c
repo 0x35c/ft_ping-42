@@ -104,17 +104,30 @@ int parse_options(int ac, char *const *av, char **hostname,
 {
 	int opt;
 
-	if (av[1][0] != '-') {
-		dprintf(2, "ft_ping: invalid option '%s'\n", av[0]);
-		return -1;
-	}
-	while ((opt = getopt(ac, av, "t:c:i:qs:v")) != -1) {
+	while ((opt = getopt(ac, av, ":t:c:i:qs:v?")) != -1) {
 		if (opt == '?') {
-			dprintf(2, "ft_ping: unknown option '%s'\n",
-			        av[optind]);
-			return -1;
+			if (strcmp(av[optind - 1], "-?") == 0) {
+				print_usage();
+				exit(0);
+			} else {
+				dprintf(2, "ft_ping: invalid option -- '%s'\n",
+				        av[optind]);
+				print_usage();
+				return -1;
+			}
 		}
-		if (opt == 'q' || opt == 'v') {
+		// 		if (opt == '?') {
+		// 			if (optopt == '?') {
+
+		// 				print_usage();
+		// 			} else {
+		// 				dprintf(2, "ft_ping: invalid
+		// option -- '%s'\n", av[optind]);
+		// print_usage();
+		// 			}
+		// 			return -1;
+		// 		}
+		if (strchr("qv", opt)) {
 			add_option(head, opt, 1);
 			continue;
 		}

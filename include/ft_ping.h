@@ -43,5 +43,6 @@ void ping(int sockfd, struct sockaddr_in *addr_con, struct option_lst *options,
 int dns_lookup(char *ip_addr, char *hostname, struct sockaddr_in *addr_con);
 int reverse_dns_lookup(char *ip_addr, char *host);
 int err(char *str);
+void print_usage(void);
 unsigned int checksum(void *data, size_t len);
 void calculate_rtt(struct stats *stats);
