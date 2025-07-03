@@ -2,12 +2,16 @@
 
 unsigned short checksum(void *data, int len)
 {
-	unsigned short *cpy = data;
+	unsigned short *buf = data;
 	unsigned int sum = 0;
+	unsigned short result;
 
-	for (int i = 0; i < len; i += 2)
-		sum += *cpy++;
+	for (sum = 0; len > 1; len -= 2)
+		sum += *buf++;
+	if (len == 1)
+		sum += *(unsigned char *)buf;
 	sum = (sum >> 16) + (sum & 0xFFFF);
 	sum += (sum >> 16);
-	return ~sum;
+	result = ~sum;
+	return result;
 }
