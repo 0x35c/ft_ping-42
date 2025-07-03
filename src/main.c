@@ -21,7 +21,7 @@ int main(int ac, char **av)
 	}
 
 	if (parse_options(ac, av, &hostname, &options) < 0)
-		return 1;
+		goto error;
 	ttl_val = get_option_arg(options, FL_TTL);
 	if (!ttl_val)
 		ttl_val = 48;
@@ -30,9 +30,9 @@ int main(int ac, char **av)
 		packetsize = 56;
 
 	if (dns_lookup(stats.ip, hostname, &addr_con))
-		return 1;
+		goto error;
 	if (reverse_dns_lookup(stats.ip, stats.host))
-		return 1;
+		goto error;
 	stats.packetsize = packetsize;
 	stats.ttl = ttl_val;
 
@@ -51,12 +51,10 @@ int main(int ac, char **av)
 
 	ping(sockfd, &addr_con, options, &stats, hostname);
 
-	for (struct option_lst *it = options; it;) {
-		struct option_lst *tmp = it;
-		it = it->next;
-		free(tmp);
-	}
+	free_options(&options);
 	close(sockfd);
-
 	return 0;
+error:
+	free_options(&options);
+	return 1;
 }

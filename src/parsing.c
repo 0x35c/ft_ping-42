@@ -18,16 +18,22 @@ int get_option_arg(struct option_lst *options, e_flag flag)
 	return 0;
 }
 
+void free_options(struct option_lst **head)
+{
+	for (struct option_lst *it = *head; it;) {
+		struct option_lst *tmp = it;
+		it = it->next;
+		free(tmp);
+	}
+	*head = NULL;
+}
+
 static int add_option(struct option_lst **head, e_flag flag, int arg)
 {
 	struct option_lst *new_option = malloc(sizeof(struct option_lst));
 	if (!new_option) {
 		dprintf(2, "ft_ping: allocation of option failed\n");
-		for (struct option_lst *it = *head; it;) {
-			struct option_lst *tmp = it;
-			it = it->next;
-			free(tmp);
-		}
+		free_options(head);
 		return -1;
 	}
 
@@ -70,11 +76,11 @@ static int check_arg(int opt, const char *s)
 	}
 	switch (opt) {
 	case FL_SIZE:
-		if (arg < 0 || arg > 65527) {
+		if (arg < 0 || arg > 65507) {
 			dprintf(
 			    2,
 			    "ft_ping: invalid -s value: '%s': out of range: 0 "
-			    "<= value <= 65527\n",
+			    "<= value <= 65507\n",
 			    s);
 			return -1;
 		}
@@ -116,17 +122,6 @@ int parse_options(int ac, char *const *av, char **hostname,
 				return -1;
 			}
 		}
-		// 		if (opt == '?') {
-		// 			if (optopt == '?') {
-
-		// 				print_usage();
-		// 			} else {
-		// 				dprintf(2, "ft_ping: invalid
-		// option -- '%s'\n", av[optind]);
-		// print_usage();
-		// 			}
-		// 			return -1;
-		// 		}
 		if (strchr("qv", opt)) {
 			add_option(head, opt, 1);
 			continue;
@@ -140,7 +135,8 @@ int parse_options(int ac, char *const *av, char **hostname,
 		}
 		if (check_arg(opt, optarg) < 0)
 			return -1;
-		add_option(head, opt, atoi(optarg));
+		if (add_option(head, opt, atoi(optarg)) < 0)
+			return -1;
 	}
 	if (optind < ac)
 		*hostname = av[optind];

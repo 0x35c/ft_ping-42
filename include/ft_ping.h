@@ -46,3 +46,4 @@ int err(char *str);
 void print_usage(void);
 unsigned int checksum(void *data, size_t len);
 void calculate_rtt(struct stats *stats);
+void free_options(struct option_lst **head);

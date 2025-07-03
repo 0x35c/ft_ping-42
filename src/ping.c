@@ -154,8 +154,11 @@ void ping(int sockfd, struct sockaddr_in *addr_con, struct option_lst *options,
 			continue;
 		packets_sent++;
 
-		if (receive_packet(sockfd, verbose, packets_sent))
+		if (receive_packet(sockfd, verbose, packets_sent)) {
+			if (count && packets_sent >= count)
+				sending = false;
 			continue;
+		}
 		if (!quiet && (recv_hdr.type != 0 || recv_hdr.code != 0)) {
 			printf("%lu bytes from %s (%s): icmp_seq=%d ttl=%d "
 			       "%s ms\n",
@@ -166,9 +169,6 @@ void ping(int sockfd, struct sockaddr_in *addr_con, struct option_lst *options,
 		}
 		packets_received++;
 		clock_gettime(CLOCK_MONOTONIC, &packet_end);
-
-		if (count && packets_received >= count)
-			sending = false;
 
 		long double time_elapsed =
 		    (packet_end.tv_sec - packet_start.tv_sec) * 1000.0 +
