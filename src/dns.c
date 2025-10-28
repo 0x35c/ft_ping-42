@@ -8,9 +8,14 @@
 
 int dns_lookup(char *ip_addr, char *hostname, struct sockaddr_in *addr_con)
 {
+	if (!hostname) {
+		dprintf(2, "Please input a hostname.\n");
+		return -1;
+	}
+
 	struct hostent *host = gethostbyname(hostname);
 	if (!host) {
-		dprintf(2, "Hostname %s doesn't exist or has invalid format.",
+		dprintf(2, "Hostname %s doesn't exist or has invalid format.\n",
 		        hostname);
 		return -1;
 	}
